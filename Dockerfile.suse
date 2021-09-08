@@ -1,0 +1,16 @@
+
+#--- suse build environment ---
+FROM opensuse/leap:15.2 as leapbuilder
+RUN zypper -n update && \
+    zypper -n install python3 python3-configobj python3-setuptools git make rpm-build
+
+#--- suse builds
+FROM leapbuilder as leapbuildenv
+RUN git clone https://github.com/weewx/weewx.git /root/weewx && \
+    cd /root/weewx && \
+    sed -e s/SIGN=1/SIGN=0/ -i makefile && \
+    cd /root/weewx && make rpm-package RPMOS=suse OSREL=15 &&  make rpm-package RPMOS=suse OSREL=12
+
+#--- grab the results ---
+FROM debian:11 as results
+COPY --from=leapbuildenv /root/weewx/dist/* /root/

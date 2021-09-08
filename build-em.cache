@@ -1,0 +1,6 @@
+docker build -t results -f Dockerfile .
+
+# to see the rpms look in /root in the container
+docker run --rm -it results bash --name foo
+
+
