@@ -1,4 +1,18 @@
 #!/bin/bash
+#
+# Docker variant of making the tarball and packages for all os
+#
+# - this tested on a 16 GB RAM m1 Mac mini running:
+#         macOS Big Sur 11.15.2
+#         Docker desktop Version 4.0.0 (4.0.0.12)
+#
+# - approximate runtime on the mini is 75 seconds using pre-built images
+#   or about 5 minutes if you rebuild the base os images every time,
+#   mainly due to the upstream openSuSE leap repos being very slow
+#
+# changelog:
+#     2021-0909 - vinceskahan@gmail.com - original
+#
 
 repo="weewx.git"
 remote="https://github.com/weewx/${repo}"
@@ -32,18 +46,19 @@ cd -
 #----- build the base os images ----
 #-----------------------------------------------------------------
 
-# uncomment to rebuild base images from scratch every time
+# uncomment the following line to rebuild base images from scratch every time
+# NOCACHE="--no-cache"
+#
 #    note: opensuse/leap image is 4-5 minutes due to slowness of upstream repo servers
 #
-# this should typically be commented out
-# NOCACHE="--no-cache"
+# on the Mac Docker, having NOCACHE='' or NOCACHE= will cause a syntax error
+# so either comment or uncomment the following line to use/not-use cached Docker layers
+#
 
-docker build ${NOCACHE} -t debian11_build_os --target debian11_build_os -f ./Dockerfile .
-docker build ${NOCACHE} -t centos8_build_os  --target centos8_build_os  -f ./Dockerfile .
-docker build ${NOCACHE} -t leap_build_os     --target leap_build_os     -f ./Dockerfile .
-
-# noting here for completeness, although not needed since deb11 packages work fine for all debian(ish) os
-#  docker build "${NOCACHE}" -t ubuntu2004_build_os --target ubuntu2004_build_os -f ./Dockerfile .
+for target in debian11 centos8 leap
+do
+  docker build ${NOCACHE} -t ${target}_build_os --target ${target}_build_os -f ./Dockerfile .
+done
 
 #-----------------------------------------------------------------
 #----- build the packages and tarball ----
@@ -59,6 +74,6 @@ docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it leap_build_os   
 
 # reenable disable rpm signing in makefile
 # so a 'git status' of the sources is clean again
-cd "${repo}" && sed -i .bak 's/SIGN=0/SIGN=1/' makefile
+cd "${repo}" && sed -i .bak 's/SIGN=0/SIGN=1/' makefile && rm makefile.bak
 
 
