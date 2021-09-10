@@ -10,7 +10,10 @@
 #   or about 5 minutes if you rebuild the base os images every time,
 #   mainly due to the upstream openSuSE leap repos being very slow
 #
+# - approximate time on a 2018 i3 NUC running ubuntu 1804 is 15 seconds !
+#
 # changelog:
+#     2021-0910 - vinceskahan@gmail.com - enable/disable signing better, capture return values
 #     2021-0909 - vinceskahan@gmail.com - original
 #
 
@@ -19,6 +22,9 @@ remote="https://github.com/weewx/${repo}"
 
 # set your desired upstream branch here
 branch="development"
+
+# set to 1 to enable signing, 0 to disable
+SIGN=0
 
 #-----------------------------------------------------------------
 #----- clone or pull upstream repo ---
@@ -64,16 +70,25 @@ done
 #----- build the packages and tarball ----
 #-----------------------------------------------------------------
 
-# temporarily disable rpm signing for this POC
-cd "${repo}" && sed -i .bak 's/SIGN=1/SIGN=0/' makefile && rm makefile.bak && cd -
+if [ "x${SIGN}" = "x0" ]
+then
+    SIGNING="SIGN=0"
+fi
 
-# run make in an ephemeral container
-docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it debian11_build_os  make debian-packages
-docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it centos8_build_os   make redhat-packages
-docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it leap_build_os      make suse-packages
+# run make in an ephemeral container and capture the return status
 
-# reenable disable rpm signing in makefile
-# so a 'git status' of the sources is clean again
-cd "${repo}" && sed -i .bak 's/SIGN=0/SIGN=1/' makefile && rm makefile.bak
+docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it debian11_build_os  make ${SIGNING}  debian-packages
+debretval=$?
+docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it centos8_build_os   make ${SIGNING}  redhat-packages
+rhretval=$?
+docker run -w /mnt/weewx -v `pwd`/weewx.git:/mnt/weewx --rm -it leap_build_os      make ${SIGNING}  suse-packages
+suseretval=$?
+
+echo ""
+echo "debian return value = ${debretval}"
+echo "redhat return value = ${rhretval}"
+echo "suse   return value = ${suseretval}"
+echo ""
+
 
 
