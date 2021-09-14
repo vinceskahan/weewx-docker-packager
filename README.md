@@ -43,7 +43,7 @@ apt-get install -y python3-ephem python3-pymysql mariadb-server python3-pil pyth
 
 # remove one line from rsyslog.conf in order to function under docker
 cp /etc/rsyslog.conf /etc/rsyslog.conf.orig
-grep -v "^module(load="imklog")" /etc/rsyslog.conf.orig > /etc/rsyslog.conf
+grep -v '^module(load="imklog")' /etc/rsyslog.conf.orig > /etc/rsyslog.conf
 
 # start rsyslogd (required for mariadb)
 # then start mariadb
